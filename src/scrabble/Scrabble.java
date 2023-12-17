@@ -35,6 +35,7 @@ public class Scrabble {
         HAND, // Waiting for user to select tiles (if any) to exchange
         ILLEGAL_MOVE, // Waiting for user to acknowledge an illegal move
         AI_PLAYING, // Waiting for AI to play
+        OPPONENT_SELECTION, //Select AI to play against
         GAME_OVER} // Game over
 
     // A static block like this is called once when the class is loaded. It is useful for initializing complex
@@ -101,7 +102,7 @@ public class Scrabble {
 
     public Scrabble() {
         board = new Board();
-        ai = new Incrementalist(); // Opponent
+        ai = new SimpleAI(); // Opponent
         ai.setGateKeeper(new GateKeeper(board, 0));
         mode = Mode.AI_PLAYING;
     }
@@ -110,22 +111,28 @@ public class Scrabble {
         new Scrabble().run();
     }
 
-    /** Runs the game. Crashes if the AI opponent plays an illegal move. */
+    /** Runs the game. Crashes if the AI opponent plays an illegal move. */  //Why tf would we do this -Ryder
     private void run() throws IllegalMoveException {
         StdDraw.setCanvasSize(805, 525);
         StdDraw.setXscale(-1.5, 23.5);
         StdDraw.setYscale(-1.5, 15.5);
         StdDraw.enableDoubleBuffering();
-        boardCursor = Location.CENTER;
-        boardCursorDirection = Location.HORIZONTAL;
-        draw();
+
+        // New: User selects opponent
+        selectOpponent();
+
+        // Rest of the code remains the same
+
+        // Game loop
         while (mode != Mode.GAME_OVER) {
-            if (mode == Mode.AI_PLAYING) {
+            if (mode == Mode.OPPONENT_SELECTION) {
+                // User selects opponent
+                selectOpponent();
+            } else if (mode == Mode.AI_PLAYING) {
+                // AI's turn
                 draw();
                 ScrabbleMove move = ai.chooseMove();
-                // This fixes a security hole where the AI player returns an instance of a new class implementing
-                // scrabble.ScrabbleMove, which then manipulates the scrabble.Board.
-                if (!(move instanceof PlayWord || move instanceof ExchangeTiles)){
+                if (!(move instanceof PlayWord || move instanceof ExchangeTiles)) {
                     throw new IllegalMoveException("Bogus scrabble.ScrabbleMove implementation detected!");
                 }
                 Location[] place = move.play(board, 0);
@@ -140,10 +147,34 @@ public class Scrabble {
                 }
                 draw();
             } else {
+                // User's turn
                 handleKeyPress();
                 draw();
             }
         }
+    }
+    private void selectOpponent() {
+        drawOpponentSelection();
+        int c = getKeyPressed();
+        if (c == VK_U) {
+            ai = new SimpleAI();
+            ai.setGateKeeper(new GateKeeper(board, 0));
+            mode = Mode.AI_PLAYING;
+        } else if (c == VK_V) {
+            ai = new Incrementalist();
+            ai.setGateKeeper(new GateKeeper(board, 0));
+            mode = Mode.AI_PLAYING;
+        }
+    }
+
+    private void drawOpponentSelection() {
+        StdDraw.clear(TABLE_COLOR);
+        StdDraw.setPenColor(Color.WHITE);
+        StdDraw.setFont(LETTER_FONT);
+        StdDraw.text(10, 10, "Select opponent:");
+        StdDraw.text(10, 8, "Press U to play SimpleAI");
+        StdDraw.text(10, 7, "Press V to play Incrementalist");
+        StdDraw.show();
     }
 
     /** Prepare for the user to select tiles (if any) to exchange. */

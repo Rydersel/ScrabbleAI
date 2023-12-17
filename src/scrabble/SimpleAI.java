@@ -8,7 +8,7 @@ import java.util.ArrayList;
  */
 
 
-public class Incrementalist implements ScrabbleAI {
+public class SimpleAI implements ScrabbleAI {
 
     /** When exchanging, always exchange everything. */
     private static final boolean[] ALL_TILES = {true, true, true, true, true, true, true};
@@ -73,11 +73,13 @@ public class Incrementalist implements ScrabbleAI {
         ArrayList<Character> hand = gateKeeper.getHand();
         PlayWord bestMove = null;
         int bestScore = -1;
+
         for (int i = 0; i < hand.size(); i++) {
             char c = hand.get(i);
             if (c == '_') {
                 c = 'E'; // This could be improved slightly by trying all possibilities for the blank
             }
+
             for (String word : new String[] {c + " ", " " + c}) {
                 for (int row = 0; row < Board.WIDTH; row++) {
                     for (int col = 0; col < Board.WIDTH; col++) {
@@ -86,6 +88,8 @@ public class Incrementalist implements ScrabbleAI {
                             try {
                                 gateKeeper.verifyLegality(word, location, direction);
                                 int score = gateKeeper.score(word, location, direction);
+
+                                // Additional logic to consider: word length, premium squares, etc.
                                 if (score > bestScore) {
                                     bestScore = score;
                                     bestMove = new PlayWord(word, location, direction);
@@ -98,10 +102,13 @@ public class Incrementalist implements ScrabbleAI {
                 }
             }
         }
+
         if (bestMove != null) {
             return bestMove;
         }
+
         return new ExchangeTiles(ALL_TILES);
     }
+
 
 }
