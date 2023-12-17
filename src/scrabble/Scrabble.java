@@ -4,12 +4,11 @@ import edu.princeton.cs.algs4.StdDraw;
 
 import java.awt.*;
 import static java.awt.event.KeyEvent.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+
+import java.util.*;
 import java.util.List;
 
-/** GUI allowing a human to play against a scrabble.ScrabbleAI. To change the AI, edit the constructor. */
+/** GUI allowing a human to play against a ScrabbleAI. To change the AI, edit the constructor. */
 public class Scrabble {
 
     private static final Map<Character, Color> COLORS = new HashMap<>();
@@ -29,13 +28,12 @@ public class Scrabble {
     /** Keys that the user might press. */
     private static final List<Integer> KEYS = new ArrayList<>();
 
-    /** This scrabble.Scrabble is always in exactly one of these modes. */
+    /** This Scrabble is always in exactly one of these modes. */
     private enum Mode {
         BOARD, // Waiting for user to play a word on the board
         HAND, // Waiting for user to select tiles (if any) to exchange
         ILLEGAL_MOVE, // Waiting for user to acknowledge an illegal move
         AI_PLAYING, // Waiting for AI to play
-        OPPONENT_SELECTION, //Select AI to play against
         GAME_OVER} // Game over
 
     // A static block like this is called once when the class is loaded. It is useful for initializing complex
@@ -78,10 +76,10 @@ public class Scrabble {
     /** Current GUI mode. */
     private Mode mode;
 
-    /** scrabble.Location of the cursor on the board. */
+    /** Location of the cursor on the board. */
     private Location boardCursor;
 
-    /** Direction (scrabble.Location.HORIZONTAL or scrabble.Location.VERTICAL) of cursor on the board. */
+    /** Direction (Location.HORIZONTAL or Location.VERTICAL) of cursor on the board. */
     private Location boardCursorDirection;
 
     /**
@@ -91,7 +89,7 @@ public class Scrabble {
      */
     private String wordBeingConstructed;
 
-    /** scrabble.Location of the cursor in the user's hand, for selecting tiles to discard. */
+    /** Location of the cursor in the user's hand, for selecting tiles to discard. */
     private int handCursor;
 
     /** Tiles marked for discarding. */
@@ -102,38 +100,33 @@ public class Scrabble {
 
     public Scrabble() {
         board = new Board();
-        ai = new SimpleAI(); // Opponent
+        ai = chooseOpponent(); // Opponent selection
         ai.setGateKeeper(new GateKeeper(board, 0));
         mode = Mode.AI_PLAYING;
     }
+
 
     public static void main(String[] args) throws IllegalMoveException {
         new Scrabble().run();
     }
 
-    /** Runs the game. Crashes if the AI opponent plays an illegal move. */  //Why tf would we do this -Ryder
+    /** Runs the game. Crashes if the AI opponent plays an illegal move. */
     private void run() throws IllegalMoveException {
         StdDraw.setCanvasSize(805, 525);
         StdDraw.setXscale(-1.5, 23.5);
         StdDraw.setYscale(-1.5, 15.5);
         StdDraw.enableDoubleBuffering();
-
-        // New: User selects opponent
-        selectOpponent();
-
-        // Rest of the code remains the same
-
-        // Game loop
+        boardCursor = Location.CENTER;
+        boardCursorDirection = Location.HORIZONTAL;
+        draw();
         while (mode != Mode.GAME_OVER) {
-            if (mode == Mode.OPPONENT_SELECTION) {
-                // User selects opponent
-                selectOpponent();
-            } else if (mode == Mode.AI_PLAYING) {
-                // AI's turn
+            if (mode == Mode.AI_PLAYING) {
                 draw();
                 ScrabbleMove move = ai.chooseMove();
-                if (!(move instanceof PlayWord || move instanceof ExchangeTiles)) {
-                    throw new IllegalMoveException("Bogus scrabble.ScrabbleMove implementation detected!");
+                // This fixes a security hole where the AI player returns an instance of a new class implementing
+                // ScrabbleMove, which then manipulates the Board.
+                if (!(move instanceof PlayWord || move instanceof ExchangeTiles)){
+                    throw new IllegalMoveException("Bogus ScrabbleMove implementation detected!");
                 }
                 Location[] place = move.play(board, 0);
                 if (place != null) {
@@ -147,34 +140,10 @@ public class Scrabble {
                 }
                 draw();
             } else {
-                // User's turn
                 handleKeyPress();
                 draw();
             }
         }
-    }
-    private void selectOpponent() {
-        drawOpponentSelection();
-        int c = getKeyPressed();
-        if (c == VK_U) {
-            ai = new SimpleAI();
-            ai.setGateKeeper(new GateKeeper(board, 0));
-            mode = Mode.AI_PLAYING;
-        } else if (c == VK_V) {
-            ai = new Incrementalist();
-            ai.setGateKeeper(new GateKeeper(board, 0));
-            mode = Mode.AI_PLAYING;
-        }
-    }
-
-    private void drawOpponentSelection() {
-        StdDraw.clear(TABLE_COLOR);
-        StdDraw.setPenColor(Color.WHITE);
-        StdDraw.setFont(LETTER_FONT);
-        StdDraw.text(10, 10, "Select opponent:");
-        StdDraw.text(10, 8, "Press U to play SimpleAI");
-        StdDraw.text(10, 7, "Press V to play Incrementalist");
-        StdDraw.show();
     }
 
     /** Prepare for the user to select tiles (if any) to exchange. */
@@ -389,7 +358,7 @@ public class Scrabble {
     }
 
     /**
-     * Draws one square or tile at position x, y. @see scrabble.Board
+     * Draws one square or tile at position x, y. @see Board
      *
      * @param outlined True if this is the current tile in the hand when selecting tiles to exchange.
      * @param crossedOut True if this tile has been marked for exchange.
@@ -429,5 +398,37 @@ public class Scrabble {
             StdDraw.line(x - 0.5, y + 0.5, x + 0.5, y - 0.5);
         }
     }
+    private ScrabbleAI chooseOpponent() {
+        System.out.println("Select your opponent:");
+        System.out.println("1. Incrementalist (Easy)");
+        System.out.println("2. Simple AI (Medium)");
+
+        int choice = getUserChoice();
+
+        switch (choice) {
+            case 1:
+                return new Incrementalist();
+            case 2:
+                return new SimpleAI();
+            default:
+                System.out.println("Invalid choice. Defaulting to Incrementalist.");
+                return new Incrementalist();
+        }
+    }
+
+    private int getUserChoice() {
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+            try {
+                System.out.print("Enter your choice: ");
+                return Integer.parseInt(scanner.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a number.");
+            }
+        }
+    }
+
+
 
 }

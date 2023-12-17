@@ -23,6 +23,7 @@ public class Incrementalist implements ScrabbleAI {
 
     @Override
     public ScrabbleMove chooseMove() {
+        System.out.println("Incrementalist");
         if (gateKeeper.getSquare(Location.CENTER) == Board.DOUBLE_WORD_SCORE) {
             return findTwoTileMove();
         }
@@ -70,6 +71,7 @@ public class Incrementalist implements ScrabbleAI {
      * tile to the end of an existing word.
      */
     private ScrabbleMove findOneTileMove() {
+
         ArrayList<Character> hand = gateKeeper.getHand();
         PlayWord bestMove = null;
         int bestScore = -1;

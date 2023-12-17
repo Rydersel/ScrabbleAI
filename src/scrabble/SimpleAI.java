@@ -23,6 +23,7 @@ public class SimpleAI implements ScrabbleAI {
 
     @Override
     public ScrabbleMove chooseMove() {
+        System.out.println("SimpleAI");
         if (gateKeeper.getSquare(Location.CENTER) == Board.DOUBLE_WORD_SCORE) {
             return findTwoTileMove();
         }
